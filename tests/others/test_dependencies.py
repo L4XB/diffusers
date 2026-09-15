@@ -89,11 +89,12 @@ class TestDependencies:
         if failures:
             pytest.fail("Unguarded optional-dependency imports found:\n" + "\n".join(failures))
 
-    def test_ltx2_pipelines_import_without_gemma4_unified(self):
-        """The LTX2 pipelines annotate `text_encoder` with `Gemma4UnifiedForConditionalGeneration`,
-        which transformers only added in 5.10.0, so importing them must not require the symbol.
+    def test_ltx2_pipelines_import_on_older_transformers(self):
+        """The LTX2 pipelines annotate `text_encoder` and `prompt_enhancer` with
+        `Gemma4UnifiedForConditionalGeneration` and `Gemma4ForConditionalGeneration`, which transformers
+        added in 5.10.0 and 5.5.0. Importing them must not require either symbol.
 
-        Runs in a subprocess because the symbol has to be hidden before `diffusers` is imported.
+        Runs in a subprocess because the symbols have to be hidden before `diffusers` is imported.
         """
         script = textwrap.dedent(
             """
@@ -101,22 +102,22 @@ class TestDependencies:
             import sys
             import types
 
-            symbol = "Gemma4UnifiedForConditionalGeneration"
+            symbols = {"Gemma4ForConditionalGeneration", "Gemma4UnifiedForConditionalGeneration"}
             _version = importlib.metadata.version
             importlib.metadata.version = lambda name, *args, **kwargs: (
-                "5.9.0" if name == "transformers" else _version(name, *args, **kwargs)
+                "5.4.0" if name == "transformers" else _version(name, *args, **kwargs)
             )
 
             import transformers
 
             class _OlderTransformers(types.ModuleType):
                 def __getattr__(self, name):
-                    if name == symbol:
+                    if name in symbols:
                         raise AttributeError(name)
                     return getattr(transformers, name)
 
             shim = _OlderTransformers("transformers")
-            shim.__dict__.update({k: v for k, v in vars(transformers).items() if k != symbol})
+            shim.__dict__.update({k: v for k, v in vars(transformers).items() if k not in symbols})
             sys.modules["transformers"] = shim
 
             import diffusers

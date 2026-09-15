@@ -23,7 +23,6 @@ import PIL.Image
 import torch
 from transformers import (
     Gemma3ForConditionalGeneration,
-    Gemma4ForConditionalGeneration,
     GemmaTokenizer,
     GemmaTokenizerFast,
     PreTrainedModel,
@@ -59,9 +58,13 @@ from .utils import (
 from .vocoder import LTX2Vocoder, LTX2VocoderWithBWE
 
 
-# `Gemma4UnifiedForConditionalGeneration` was added in transformers 5.10.0; on older releases the name
-# falls back to the base class so this module still imports.
+# `Gemma4ForConditionalGeneration` was added in transformers 5.5.0 and
+# `Gemma4UnifiedForConditionalGeneration` in 5.10.0; on older releases the names fall back to the base
+# class so this module still imports.
+Gemma4ForConditionalGeneration = PreTrainedModel
 Gemma4UnifiedForConditionalGeneration = PreTrainedModel
+if is_transformers_version(">=", "5.5.0"):
+    from transformers import Gemma4ForConditionalGeneration
 if is_transformers_version(">=", "5.10.0"):
     from transformers import Gemma4UnifiedForConditionalGeneration
 
