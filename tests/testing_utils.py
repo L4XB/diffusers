@@ -45,6 +45,7 @@ from diffusers.utils.import_utils import (
     is_sdnq_available,
     is_timm_available,
     is_torch_available,
+    is_torch_mlu_available,
     is_torch_neuronx_available,
     is_torch_version,
     is_torchao_available,
@@ -102,6 +103,8 @@ if is_torch_available():
             torch_device = "cuda"
         elif torch.xpu.is_available():
             torch_device = "xpu"
+        elif is_torch_mlu_available():
+            torch_device = "mlu"
         elif is_torch_neuronx_available() and hasattr(torch, "neuron") and torch.neuron.is_available():
             torch_device = torch.neuron.current_device()
         else:
@@ -1565,6 +1568,19 @@ if is_torch_available():
         BACKEND_MAX_MEMORY_ALLOCATED[_neuron_device] = 0
         BACKEND_SYNCHRONIZE[_neuron_device] = torch.neuron.synchronize
         BACKEND_SUPPORTS_TRAINING[_neuron_device] = False
+
+    if is_torch_mlu_available():
+        # Importing `torch_mlu` is what registers the `torch.mlu` namespace.
+        import torch_mlu  # noqa: F401
+
+        BACKEND_EMPTY_CACHE["mlu"] = torch.mlu.empty_cache
+        BACKEND_DEVICE_COUNT["mlu"] = torch.mlu.device_count
+        BACKEND_MANUAL_SEED["mlu"] = torch.mlu.manual_seed
+        BACKEND_RESET_PEAK_MEMORY_STATS["mlu"] = torch.mlu.reset_peak_memory_stats
+        BACKEND_RESET_MAX_MEMORY_ALLOCATED["mlu"] = torch.mlu.reset_max_memory_allocated
+        BACKEND_MAX_MEMORY_ALLOCATED["mlu"] = torch.mlu.max_memory_allocated
+        BACKEND_SYNCHRONIZE["mlu"] = torch.mlu.synchronize
+        BACKEND_SUPPORTS_TRAINING["mlu"] = True
 
 
 # This dispatches a defined function according to the accelerator from the function definitions.

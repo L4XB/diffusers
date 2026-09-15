@@ -33,6 +33,7 @@ from .utils import (
     deprecate,
     is_accelerate_available,
     is_peft_available,
+    is_torch_mlu_available,
     is_torch_npu_available,
     is_torchvision_available,
     is_transformers_available,
@@ -56,6 +57,10 @@ if is_torchvision_available():
 
 if is_torch_npu_available():
     import torch_npu  # noqa: F401
+
+if is_torch_mlu_available():
+    # Importing `torch_mlu` is what registers the `torch.mlu` namespace.
+    import torch_mlu  # noqa: F401
 
 
 def set_seed(seed: int):
@@ -421,6 +426,8 @@ def free_memory():
         torch_npu.npu.empty_cache()
     elif hasattr(torch, "xpu") and torch.xpu.is_available():
         torch.xpu.empty_cache()
+    elif is_torch_mlu_available():
+        torch.mlu.empty_cache()
 
 
 @contextmanager

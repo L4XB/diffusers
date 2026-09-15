@@ -104,6 +104,19 @@ if is_torch_available():
         "default": None,
     }
 
+    if is_torch_mlu_available():
+        # Importing `torch_mlu` is what registers the `torch.mlu` namespace.
+        import torch_mlu  # noqa: F401
+
+        BACKEND_SUPPORTS_TRAINING["mlu"] = True
+        BACKEND_EMPTY_CACHE["mlu"] = torch.mlu.empty_cache
+        BACKEND_DEVICE_COUNT["mlu"] = torch.mlu.device_count
+        BACKEND_MANUAL_SEED["mlu"] = torch.mlu.manual_seed
+        BACKEND_RESET_PEAK_MEMORY_STATS["mlu"] = torch.mlu.reset_peak_memory_stats
+        BACKEND_RESET_MAX_MEMORY_ALLOCATED["mlu"] = torch.mlu.reset_max_memory_allocated
+        BACKEND_MAX_MEMORY_ALLOCATED["mlu"] = torch.mlu.max_memory_allocated
+        BACKEND_SYNCHRONIZE["mlu"] = torch.mlu.synchronize
+
     _FP64_UNSUPPORTED_DEVICES = frozenset({"mps", "npu", "neuron"})
     _INT64_UNSUPPORTED_DEVICES = frozenset({"mps", "npu", "neuron"})
     _DTYPE_DOWNCAST = {torch.float64: torch.float32, torch.int64: torch.int32}
