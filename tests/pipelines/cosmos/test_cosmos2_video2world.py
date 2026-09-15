@@ -138,6 +138,20 @@ class TestCosmos2VideoToWorldPipeline(
     def test_inference_batch_single_identical(self, batch_size=3, expected_max_diff=1e-2):
         super().test_inference_batch_single_identical(batch_size=batch_size, expected_max_diff=expected_max_diff)
 
+    def test_fps_does_not_change_generation(self):
+        """The released Cosmos-Predict2 checkpoints are trained with `rope_enable_fps_modulation=False`, so `fps`
+        is a playback property and must not reach the temporal RoPE."""
+        pipe = self.get_pipeline()
+
+        frames = {}
+        for fps in (16, 24, 30):
+            inputs = self.get_dummy_inputs()
+            inputs["fps"] = fps
+            frames[fps] = pipe(**inputs).frames[0]
+
+        assert_tensors_close(frames[24], frames[16], atol=0.0, rtol=0.0)
+        assert_tensors_close(frames[30], frames[16], atol=0.0, rtol=0.0)
+
     def test_vae_tiling(self, expected_diff_max: float = 0.2):
         pipe = self.get_pipeline()
 
