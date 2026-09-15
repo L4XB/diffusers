@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import inspect
+import subprocess
+import sys
+import textwrap
 from importlib import import_module
 
 import pytest
@@ -85,3 +88,52 @@ class TestDependencies:
 
         if failures:
             pytest.fail("Unguarded optional-dependency imports found:\n" + "\n".join(failures))
+
+    def test_ltx2_pipelines_import_without_gemma4_unified(self):
+        """The LTX2 pipelines annotate `text_encoder` with `Gemma4UnifiedForConditionalGeneration`,
+        which transformers only added in 5.10.0, so importing them must not require the symbol.
+
+        Runs in a subprocess because the symbol has to be hidden before `diffusers` is imported.
+        """
+        script = textwrap.dedent(
+            """
+            import importlib.metadata
+            import sys
+            import types
+
+            symbol = "Gemma4UnifiedForConditionalGeneration"
+            _version = importlib.metadata.version
+            importlib.metadata.version = lambda name, *args, **kwargs: (
+                "5.9.0" if name == "transformers" else _version(name, *args, **kwargs)
+            )
+
+            import transformers
+
+            class _OlderTransformers(types.ModuleType):
+                def __getattr__(self, name):
+                    if name == symbol:
+                        raise AttributeError(name)
+                    return getattr(transformers, name)
+
+            shim = _OlderTransformers("transformers")
+            shim.__dict__.update({k: v for k, v in vars(transformers).items() if k != symbol})
+            sys.modules["transformers"] = shim
+
+            import diffusers
+
+            for name in [
+                "LTX2Pipeline",
+                "LTX2ImageToVideoPipeline",
+                "LTX2ConditionPipeline",
+                "LTX2InContextPipeline",
+                "LTX2HDRPipeline",
+                "LTX2DFRPipeline",
+                "LTX2DFRTemporalRefinePipeline",
+                "LTX2AutoBlocks",
+                "LTX25AutoBlocks",
+            ]:
+                getattr(diffusers, name)
+            """
+        )
+        result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr

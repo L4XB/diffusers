@@ -22,9 +22,9 @@ import PIL.Image
 import torch
 from transformers import (
     Gemma3ForConditionalGeneration,
-    Gemma4UnifiedForConditionalGeneration,
     GemmaTokenizer,
     GemmaTokenizerFast,
+    PreTrainedModel,
 )
 
 from ...callbacks import MultiPipelineCallbacks, PipelineCallback
@@ -32,13 +32,20 @@ from ...loaders import FromSingleFileMixin, LTX2LoraLoaderMixin
 from ...models.autoencoders import AutoencoderKLLTX2Audio, AutoencoderKLLTX2Video
 from ...models.transformers import LTX2VideoTransformer3DModel
 from ...schedulers import FlowMatchEulerDiscreteScheduler
-from ...utils import is_torch_xla_available, logging, replace_example_docstring
+from ...utils import is_torch_xla_available, is_transformers_version, logging, replace_example_docstring
 from ...utils.torch_utils import randn_tensor
 from ..pipeline_utils import DiffusionPipeline
 from .connectors import LTX2TextConnectors
 from .image_processor import LTX2VideoHDRProcessor
 from .pipeline_output import LTX2PipelineOutput
 from .vocoder import LTX2Vocoder, LTX2VocoderWithBWE
+
+
+# `Gemma4UnifiedForConditionalGeneration` was added in transformers 5.10.0; on older releases the name
+# falls back to the base class so this module still imports.
+Gemma4UnifiedForConditionalGeneration = PreTrainedModel
+if is_transformers_version(">=", "5.10.0"):
+    from transformers import Gemma4UnifiedForConditionalGeneration
 
 
 if is_torch_xla_available():
